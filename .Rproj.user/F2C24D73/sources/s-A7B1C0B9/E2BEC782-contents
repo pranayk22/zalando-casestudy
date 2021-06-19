@@ -1,0 +1,185 @@
+
+---
+title: "Case Study - Zalando"
+author: '~ Pranay Khobragade'
+date: "`r Sys.Date()`"
+output:
+  rmdformats::readthedown:
+    highlight: kate
+---
+
+```{r setup, echo=FALSE, results=FALSE , fig.show='hide' , cache=FALSE , message=FALSE , warning=FALSE}
+s <- Sys.time()
+library(knitr)
+library(rmdformats)
+library(DT)
+options(scipen = 999)
+## Global options
+options(max.print="75")
+opts_chunk$set(echo=FALSE,
+	             cache=TRUE,
+               prompt=FALSE,
+               tidy=TRUE,
+               comment=NA,
+               message=FALSE,
+               warning=FALSE)
+opts_knit$set(width=75)
+
+source('./main.R')
+
+```
+
+## Objective 
+
+To forecast the expected sales per customer for December 2017 based on data before this month. 
+
+## Data Preparation
+
+Before we begin to analyse the data, we make following assumptions regarding the data - 
+
+1.   The currency of sales values as Euro.
+
+2.   With the simple summary statistics we were able to find that the data contains negative sales values for many customers. It looks like that the negative sales value show order cancellations in most cases. Assuming that the data represents only completed transactions we remove customers who have negative total sum of sales (refer Appendix)
+
+3.   On average the data shows transactions for 26 days within a month. But for some months the transactions are available for less than or more than 26 days. We assume that those missing days in a month are either public holidays or sundays.
+
+
+After cleaning the data and adjusting it for above assumptions, we will use following data table to further of our analysis :- 
+
+
+```{r}
+
+DT::datatable( head(agg.dt , 10), options= list(pageLength = 5 , dom= 'tip' , scrollX = TRUE, fixedColumns = TRUE) 
+              , rownames=FALSE )
+```
+
+*(only top 10 rows shown below)
+
+
+## Exploratory Analysis 
+
+We will transform above data for calculating `sales_per_customer` , `monthly_customers` and also `total_sales`in the data. The following plots clearly show us that -  **Monthly Total Sales**   and  **Monthly Unique Customers**  have linear correlation but they both also have negative linear correlation with **Monthly Sales Per Customer**
+
+```{r}
+grid.arrange(p4, p5 , p6 , nrow = 1)
+```
+
+We can also check the aggregated data for above months with the help of following table :- 
+
+```{r}
+
+DT::datatable( summary.dt, options= list(pageLength = 5 , dom= 'tip' , scrollX = TRUE, fixedColumns = TRUE), rownames=FALSE )
+```
+
+## Statistical Modeling 
+
+We do not have any independent variables in the data to try multivariate statistical models to predict sales per customer for December-2017. 
+
+We can use time-series techniques which can help us forecast the sales for Dec-2017 based on previous months data. Since we do not have rich historical data for previous months , we are unable to check seasonality and trend in the data. However, the following models seem to be valid and yield following results :- 
+(for residual graph refer appendix )
+
+1.  Naive Forecasting method/ Benchmarking  -
+
+    +  Residual standard deviation - 213.15
+    +  No Auto correlation above 95% confidence interval present 
+    +  Refer Appendix for Model performance plot (Forecast for Dec'2017 => 264.51 Eur)  
+    
+2.  Simple Exponential Smoothering  - 
+
+    +  Residual standard deviation - 138.79
+    +  No Auto correlation above 95% confidence interval present 
+    +  Refer Appendix for Model performance plot (Forecast for Dec'2017=> 436.31 Eur)   
+    
+3.  Holt's Trend Method  - 
+
+    +  Residual standard deviation - 153.15
+    +  No Auto correlation above 95% confidence interval present 
+    +  Refer Appendix for Model performance plot (Forecast for Dec'2017=> 406 Eur) 
+    
+4.  Simple Exponential Smoothering  - 
+
+    +  Residual standard deviation - 132.33
+    +  No Auto correlation above 95% confidence interval present 
+    +  Refer Appendix for Model performance plot (Forecast for Dec'2017=> 436.32 Eur)   
+    
+    
+## Evaluation & Result
+
+Since we do not have adequate observations to apply cross-validation techniques and check our predictions using test/train splitting of dataset, we will evealuate the performance of above models of following statistical parameters :- 
+
+ 1.  The lower the residual standard deviation the better is the model 
+ 2.  The model should not show auto correlation function (ACF) above 95% confidence interval over the time period. 
+ 
+For above criterias the best fitting model for our data is `ARIMA` as it yields lowest residual standard deviation. On the basis of this model we can say that the average sales per customer for December-2017 will be **436.32 Eur**. Infact the `exponential smoothering model` has little bit higher residual standard deviation but predicts the same average sales per customer value.  
+
+
+##  Executive Summary / Conclusion 
+
+With the help of above model we can forecast that the average sales per customers for the month of Dec-2017 will be 432.32 Eur. 
+
+
+## Appendix 
+
+#### summary statistics of sales value 
+
+```{r}
+summary(agg.dt$sales)
+```
+
+#### Checking Outliers 
+
+Although, the treatment of outliers in the data is most of the time not done in time-series modeling but it certainly helps in finding anomalies. Our sales per customer includes many outliers and how to treat them remains an open question 
+
+```{r}
+grid.arrange(p1, p2 , nrow = 1)
+```
+
+#### Example of cancelled orders 
+
+We removed the customers who have negative sum of sales value. The following table shows some examples of such customers - 
+
+```{r}
+
+DT::datatable( cancelled_ord, options= list(pageLength = 5 , dom= 'tip' , scrollX = TRUE, fixedColumns = TRUE), rownames=FALSE )
+```
+
+
+#### Naive Forecasting method - Model Performance 
+
+
+```{r}
+checkresiduals(naive_mod)
+```
+
+
+#### Simple Exponential Smoothering - Model Performance 
+
+```{r}
+checkresiduals(se_model)
+```
+
+#### Holt's Trend Method - Model Performance 
+
+```{r}
+checkresiduals(holt_model)
+```
+
+#### ARIMA - Model Performance 
+
+```{r}
+checkresiduals(arima_model)
+```
+
+#### Glossary 
+
+Residual Standard Deviation - Left over error terms. Part of the data that model can explain. 
+
+Autocorrelation Function or ACF - 
+Autocorrelation represents the degree of similarity between a given time series and a lagged version of itself over successive time intervals. Autocorrelation measures the relationship between a variable's current value and its past values.
+
+
+
+
+
+    
+    
